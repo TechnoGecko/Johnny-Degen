@@ -62,10 +62,7 @@ contract DegenMint is ERC721, Ownable {
     }
 
     modifier mintCompliance(uint256 _mintAmount) {
-        require(
-            _mintAmount > 0 && _mintAmount <= maxMintPerTxn,
-            "Invalid mint amount!"
-        );
+        require(!paused, "Minting is paused");
         require(
             supply.current() + _mintAmount <= maxSupply,
             "Transaction would exceed max supply."
@@ -82,14 +79,13 @@ contract DegenMint is ERC721, Ownable {
         payable
         mintCompliance(_mintAmount)
     {
-        require(!paused, "Minting is paused.");
         if (
             walletIsAllowlisted[msg.sender] &&
             quantityMintedByWallet[msg.sender] + _mintAmount <= 3
         ) {
             require(
                 _mintAmount > 0,
-                "Allowlisted wallets may mint between 1 and 3 Tokens"
+                "Allowlisted wallets may mint between 1 and 3 Tokens in the free mint phase"
             );
         } else if (
             !walletIsAllowlisted[msg.sender] &&
