@@ -197,6 +197,11 @@ contract DegenMint is ERC721, Ownable {
         paused = _state;
     }
 
+    function beginMint() public onlyOwner {
+        paused = false;
+        freeMintPhase = true;
+    }
+
     function withdraw() public onlyOwner {
         // This will transfer the remaining contract balance to the owner.
         // Do not remove this otherwise you will not be able to withdraw the funds.
