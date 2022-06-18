@@ -83,10 +83,7 @@ contract DegenMint is ERC721, Ownable {
     {
         if (
             //Allowlisted during free mint phase
-            walletIsAllowlisted[msg.sender] &&
-            quantityMintedByWallet[msg.sender] + _mintAmount <=
-            maxAllowlistFreeMint &&
-            freeMintPhase
+            walletIsAllowlisted[msg.sender] && freeMintPhase
         ) {
             require(
                 _mintAmount > 0,
@@ -95,18 +92,13 @@ contract DegenMint is ERC721, Ownable {
             _mintLoop(msg.sender, _mintAmount, maxAllowlistFreeMint);
         } else if (
             //Minting during free mint WITHOUT allowlist
-            !walletIsAllowlisted[msg.sender] &&
-            !allowlistOnly &&
-            quantityMintedByWallet[msg.sender] == 0 &&
-            freeMintPhase
+            !walletIsAllowlisted[msg.sender] && !allowlistOnly && freeMintPhase
         ) {
             require(_mintAmount == 1, "One free mint is allowed per wallet!");
             _mintLoop(msg.sender, _mintAmount, maxFreeMint);
         } else if (
             //Minting after free mint phase
-            !walletIsAllowlisted[msg.sender] &&
-            !freeMintPhase &&
-            quantityMintedByWallet[msg.sender] <= maxMintPostFreePhase
+            !walletIsAllowlisted[msg.sender] && !freeMintPhase
         ) {
             require(
                 msg.value >= _mintAmount * mintPrice,
@@ -219,6 +211,7 @@ contract DegenMint is ERC721, Ownable {
         uint256 _mintAmount,
         uint256 _maxMint
     ) internal {
+        require(_mintAmount + quantityMintedByWallet[_receiver] <= _maxMint);
         for (uint256 i = 0; i < _mintAmount; i++) {
             supply.increment();
             quantityMintedByWallet[_receiver]++;
