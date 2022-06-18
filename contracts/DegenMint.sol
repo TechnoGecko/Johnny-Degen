@@ -170,6 +170,10 @@ contract DegenMint is ERC721, Ownable {
         freeMintPhase = _state;
     }
 
+    function setAllowlistOnly(bool _state) public onlyOwner {
+        allowlistOnly = _state;
+    }
+
     function setRevealed(bool _state) public onlyOwner {
         revealed = _state;
     }
