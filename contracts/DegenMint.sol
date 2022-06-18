@@ -40,11 +40,13 @@ contract DegenMint is ERC721, Ownable {
     uint256 public maxMintPerTxn;
     uint256 public maxAllowlistFreeMint;
     uint256 public maxFreeMint;
+    uint256 public maxMintPostFreePhase;
     uint256 public mintPrice;
 
     bool public allowlistOnly;
     bool public paused;
     bool public revealed;
+    bool public freeMintPhase;
 
     mapping(address => uint256) private quantityMintedByWallet;
 
@@ -80,21 +82,38 @@ contract DegenMint is ERC721, Ownable {
         mintCompliance(_mintAmount)
     {
         if (
+            //Allowlisted during free mint phase
             walletIsAllowlisted[msg.sender] &&
-            quantityMintedByWallet[msg.sender] + _mintAmount <= 3
+            quantityMintedByWallet[msg.sender] + _mintAmount <=
+            maxAllowlistFreeMint &&
+            freeMintPhase
         ) {
             require(
                 _mintAmount > 0,
                 "Allowlisted wallets may mint between 1 and 3 Tokens in the free mint phase"
             );
+            _mintLoop(msg.sender, _mintAmount, maxAllowlistFreeMint);
         } else if (
+            //Minting during free mint WITHOUT allowlist
             !walletIsAllowlisted[msg.sender] &&
             !allowlistOnly &&
-            quantityMintedByWallet[msg.sender] == 0
+            quantityMintedByWallet[msg.sender] == 0 &&
+            freeMintPhase
         ) {
             require(_mintAmount == 1, "One free mint is allowed per wallet!");
+            _mintLoop(msg.sender, _mintAmount, maxFreeMint);
+        } else if (
+            //Minting after free mint phase
+            !walletIsAllowlisted[msg.sender] &&
+            !freeMintPhase &&
+            quantityMintedByWallet[msg.sender] <= maxMintPostFreePhase
+        ) {
+            require(
+                msg.value >= _mintAmount * mintPrice,
+                "Must send the correct amount of ETH for transaction"
+            );
+            _mintLoop(msg.sender, _mintAmount, maxMintPostFreePhase);
         }
-        quantityMintedByWallet[msg.sender] += _mintAmount;
     }
 
     //From HashLips SimpleNftLowerGas.sol contract
@@ -155,6 +174,10 @@ contract DegenMint is ERC721, Ownable {
                 : "";
     }
 
+    function setFreeMint(bool _state) public onlyOwner {
+        freeMintPhase = _state;
+    }
+
     function setRevealed(bool _state) public onlyOwner {
         revealed = _state;
     }
@@ -191,9 +214,14 @@ contract DegenMint is ERC721, Ownable {
         // =============================================================================
     }
 
-    function _mintLoop(address _receiver, uint256 _mintAmount) internal {
+    function _mintLoop(
+        address _receiver,
+        uint256 _mintAmount,
+        uint256 _maxMint
+    ) internal {
         for (uint256 i = 0; i < _mintAmount; i++) {
             supply.increment();
+            quantityMintedByWallet[_receiver]++;
             _safeMint(_receiver, supply.current());
         }
     }
